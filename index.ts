@@ -49,22 +49,23 @@ const server = Bun.serve({
           })
           .join("<br>\n"),
       );
+
+      let breadcrumbsHtml: string;
       if (pathParts.length) {
-        html = html.replace(
-          "{breadcrumbs}",
-          `<a href="/">/</a> ${pathParts
-            .map((name, i) => {
-              const path = pathParts.slice(0, i - 1).join("/");
-              if (i === pathParts.length - 1) {
-                return `<span>${name}</span>`;
-              }
-              return `<a href="/${path}">${name}</a>`;
-            })
-            .join(" / ")}`,
-        );
+        breadcrumbsHtml = `<a href="/">/</a> ${pathParts
+          .map((name, i) => {
+            const path = pathParts.slice(0, i - 1).join("/");
+            if (i === pathParts.length - 1) {
+              return `<span>${name}</span>`;
+            }
+            return `<a href="/${path}">${name}</a>`;
+          })
+          .join(" / ")}`;
       } else {
-        html = html.replace("{breadcrumbs}", "<span>/</span>");
+        breadcrumbsHtml = "<span>/</span>";
       }
+      breadcrumbsHtml += ` [entries: ${entries.length}]`;
+      html = html.replace("{breadcrumbs}", breadcrumbsHtml);
 
       return new Response(html, {
         headers: {
