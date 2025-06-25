@@ -1,7 +1,7 @@
 import { env } from "bun";
 import * as path from "node:path";
 import * as fs from "node:fs/promises";
-import html from "./dir.html" with { type: "text" };
+import htmlTemplate from "./dir.html" with { type: "text" };
 
 const domain = env.DOMAIN;
 const dir = env.DIR;
@@ -15,7 +15,7 @@ const server = Bun.serve({
     console.log(req.url);
     const url = new URL(req.url);
     const { hostname, pathname } = url;
-    if (pathname.endsWith("/")) {
+    if (pathname !== "/" && pathname.endsWith("/")) {
       url.pathname = pathname.slice(0, -1);
       return Response.redirect(url.href);
     }
@@ -38,22 +38,39 @@ const server = Bun.serve({
       }
 
       const entries = await fs.readdir(filePath, { withFileTypes: true });
-      return new Response(
-        html.replace(
-          "{entries}",
-          entries
-            .map(entry => {
-              const { name } = entry;
-              return `<a href="${pathname === "/" ? "" : pathname}/${encodeURIComponent(name)}">${name}${entry.isFile() ? "" : "/"}</a>`;
-            })
-            .join("<br>\n"),
-        ),
-        {
-          headers: {
-            "Content-Type": "text/html",
-          },
-        },
+      const pathParts = pathname.split("/").filter(Boolean);
+
+      let html = htmlTemplate.replace(
+        "{entries}",
+        entries
+          .map(entry => {
+            const { name } = entry;
+            return `<a href="${pathname === "/" ? "" : pathname}/${encodeURIComponent(name)}">${name}${entry.isFile() ? "" : "/"}</a>`;
+          })
+          .join("<br>\n"),
       );
+      if (pathParts.length) {
+        html = html.replace(
+          "{breadcrumbs}",
+          `<a href="/">/</a> ${pathParts
+            .map((name, i) => {
+              const path = pathParts.slice(0, i - 1).join("/");
+              if (i === pathParts.length - 1) {
+                return `<span>${name}</span>`;
+              }
+              return `<a href="/${path}">${name}</a>`;
+            })
+            .join(" / ")}`,
+        );
+      } else {
+        html = html.replace("{breadcrumbs}", "<span>/</span>");
+      }
+
+      return new Response(html, {
+        headers: {
+          "Content-Type": "text/html",
+        },
+      });
     } catch {
       return new Response("Not Found", { status: 404 });
     }
