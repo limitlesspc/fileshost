@@ -15,6 +15,11 @@ const server = Bun.serve({
     console.log(req.url);
     const url = new URL(req.url);
     const { hostname, pathname } = url;
+    if (pathname.endsWith("/")) {
+      url.pathname = pathname.slice(0, -1);
+      return Response.redirect(url.href);
+    }
+
     const subDir =
       hostname === domain ? "@" : hostname.replace(`.${domain}`, "");
     const filePath = path.join(dir, subDir, decodeURIComponent(pathname));
