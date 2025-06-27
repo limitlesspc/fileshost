@@ -42,7 +42,16 @@ const server = Bun.serve({
 
       let html = htmlTemplate.replace(
         "{entries}",
-        entries
+        [
+          // dirs
+          ...entries
+            .filter(entry => !entry.isFile())
+            .sort((a, b) => a.name.localeCompare(b.name)),
+          // files
+          ...entries
+            .filter(entry => entry.isFile())
+            .sort((a, b) => a.name.localeCompare(b.name)),
+        ]
           .map(entry => {
             const { name } = entry;
             return `<a href="${pathname === "/" ? "" : pathname}/${encodeURIComponent(name)}">${name}${entry.isFile() ? "" : "/"}</a>`;
@@ -54,6 +63,7 @@ const server = Bun.serve({
       if (pathParts.length) {
         breadcrumbsHtml = `<a href="/">/</a> ${pathParts
           .map((name, i) => {
+            name = decodeURIComponent(name);
             const path = pathParts.slice(0, i - 1).join("/");
             if (i === pathParts.length - 1) {
               return `<span>${name}</span>`;
