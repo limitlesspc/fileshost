@@ -23,7 +23,12 @@ const server = Bun.serve({
     const subDir =
       hostname === domain ? "@" : hostname.replace(`.${domain}`, "");
     const filePath = path.join(dir, subDir, decodeURIComponent(pathname));
+    const parsedPath = path.parse(filePath);
     try {
+      if (parsedPath.name.startsWith(".")) {
+        throw new Error();
+      }
+
       const stat = await fs.stat(filePath);
       if (stat.isFile()) {
         const file = Bun.file(filePath);
@@ -45,11 +50,11 @@ const server = Bun.serve({
         [
           // dirs
           ...entries
-            .filter(entry => !entry.isFile())
+            .filter(entry => !entry.isFile() && !entry.name.startsWith("."))
             .sort((a, b) => a.name.localeCompare(b.name)),
           // files
           ...entries
-            .filter(entry => entry.isFile())
+            .filter(entry => entry.isFile() && !entry.name.startsWith("."))
             .sort((a, b) => a.name.localeCompare(b.name)),
         ]
           .map(entry => {
