@@ -20,6 +20,11 @@ const server = Bun.serve({
       return Response.redirect(url.href);
     }
 
+    if (pathname === "/robots.txt") {
+      const file = Bun.file(path.join(import.meta.dir, "./robots.txt"));
+      return new Response(file);
+    }
+
     const subDir =
       hostname === domain ? "@" : hostname.replace(`.${domain}`, "");
     const filePath = path.join(dir, subDir, decodeURIComponent(pathname));
