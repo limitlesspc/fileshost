@@ -12,7 +12,7 @@ if (!domain || !dir) {
 const server = Bun.serve({
   port: env.PORT,
   async fetch(req) {
-    console.log(req.url);
+    console.log(`[${new Date().toISOString()}] ${req.url}`);
     const url = new URL(req.url);
     const { hostname, pathname } = url;
     if (pathname !== "/" && pathname.endsWith("/")) {
