@@ -28,9 +28,9 @@ const server = Bun.serve({
     const subDir =
       hostname === domain ? "@" : hostname.replace(`.${domain}`, "");
     const filePath = path.join(dir, subDir, decodeURIComponent(pathname));
-    const parsedPath = path.parse(filePath);
     try {
-      if (parsedPath.name.startsWith(".")) {
+      const pathParts = pathname.split("/").filter(Boolean);
+      if (pathParts.some(name => name.startsWith("."))) {
         throw new Error();
       }
 
@@ -48,7 +48,6 @@ const server = Bun.serve({
       }
 
       const entries = await fs.readdir(filePath, { withFileTypes: true });
-      const pathParts = pathname.split("/").filter(Boolean);
 
       let html = htmlTemplate.replace(
         "{entries}",
