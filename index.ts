@@ -60,18 +60,17 @@ async function getResponse(
     }
 
     const entries = await fs.readdir(filePath, { withFileTypes: true });
+    const visibleEntires = entries
+      .filter(x => !x.name.startsWith("."))
+      .sort((a, b) => a.name.localeCompare(b.name));
 
     let html = htmlTemplate.replace(
       "{entries}",
       [
         // dirs
-        ...entries
-          .filter(entry => !entry.isFile() && !entry.name.startsWith("."))
-          .sort((a, b) => a.name.localeCompare(b.name)),
+        ...visibleEntires.filter(entry => !entry.isFile()),
         // files
-        ...entries
-          .filter(entry => entry.isFile() && !entry.name.startsWith("."))
-          .sort((a, b) => a.name.localeCompare(b.name)),
+        ...visibleEntires.filter(entry => entry.isFile()),
       ]
         .map(entry => {
           const { name } = entry;
@@ -95,7 +94,7 @@ async function getResponse(
     } else {
       breadcrumbsHtml = "<span>/</span>";
     }
-    breadcrumbsHtml += ` [entries: ${entries.length}]`;
+    breadcrumbsHtml += ` [entries: ${visibleEntires.length}]`;
     html = html.replace("{breadcrumbs}", breadcrumbsHtml);
 
     return {
