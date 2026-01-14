@@ -146,7 +146,7 @@ async function getResponse(
     if (galleryView) {
       breadcrumbsHtml += ` <a href="${pathname}">List view</a>`;
     } else {
-      breadcrumbsHtml += ` <a href="${pathname}/?view=gallery">Gallery view</a>`;
+      breadcrumbsHtml += ` <a href="${pathname}?view=gallery">Gallery view</a>`;
     }
     html = html.replace("{breadcrumbs}", breadcrumbsHtml);
     html = html.replace(
