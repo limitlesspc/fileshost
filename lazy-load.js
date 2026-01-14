@@ -9,7 +9,6 @@ document.addEventListener("DOMContentLoaded", () => {
           target.removeAttribute("width");
           target.removeAttribute("height");
           imageObserver.unobserve(target);
-          console.log(target);
         }
       }
     });
