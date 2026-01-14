@@ -65,7 +65,7 @@ async function getResponse(
       .sort((a, b) => a.name.localeCompare(b.name));
 
     const galleryView = url.searchParams.get("view") === "gallery";
-    const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
+    const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".heic"];
 
     const dirsHtml = visibleEntires
       .filter(entry => !entry.isFile())
