@@ -79,7 +79,9 @@ async function getResponse(
         entry =>
           entry.isFile()
           && (!galleryView
-            || imageExtensions.some(ext => entry.name.endsWith(ext))),
+            || imageExtensions.some(ext =>
+              entry.name.toLowerCase().endsWith(ext),
+            )),
       )
       .map(entry => {
         const { name } = entry;
