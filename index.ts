@@ -35,6 +35,11 @@ async function getResponse(
     return { res: new Response(file), type: "ok" };
   }
 
+  if (pathname === "/lazy-load.js") {
+    const file = Bun.file(path.join(import.meta.dir, "./lazy-load.js"));
+    return { res: new Response(file), type: "ok" };
+  }
+
   const pathParts = pathname.split("/").filter(Boolean);
   if (pathParts.some(name => name.startsWith("."))) {
     return {
@@ -66,6 +71,7 @@ async function getResponse(
 
     const galleryView = url.searchParams.get("view") === "gallery";
     const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".heic"];
+    const videoExensions = [".mp4", ".mkv", ".mov"];
 
     const dirsHtml = visibleEntires
       .filter(entry => !entry.isFile())
@@ -79,15 +85,21 @@ async function getResponse(
         entry =>
           entry.isFile()
           && (!galleryView
-            || imageExtensions.some(ext =>
+            || [...imageExtensions, ...videoExensions].some(ext =>
               entry.name.toLowerCase().endsWith(ext),
             )),
       )
       .map(entry => {
         const { name } = entry;
         const href = `${pathname === "/" ? "" : pathname}/${encodeURIComponent(name)}`;
+        const lowerName = entry.name.toLowerCase();
         if (galleryView) {
-          return `<img src="${href}" loading="lazy">`;
+          if (imageExtensions.some(ext => lowerName.endsWith(ext))) {
+            return `<img src="${href}" loading="lazy">`;
+          }
+          return `<video width="300" height="300" autoplay muted loop playsinline>
+  <source data-src="${href}" type="video/${lowerName.split(".").at(-1)}">
+</video>`;
         }
         return `<a href="${href}">${name}</a>`;
       });
