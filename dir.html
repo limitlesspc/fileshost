@@ -4,15 +4,24 @@
     <meta charset="utf-8" />
     <meta name="robots" content="noindex, nofollow" />
     <style>
-      @media (prefers-color-scheme: dark) {
-        body {
-          background: #121212;
-          color: #eee;
-          font-family: monospace;
-        }
-        a {
-          color: #809fff;
-        }
+      body {
+        background: #121212;
+        color: #eee;
+        font-family: monospace;
+      }
+      .grid {
+        display: grid;
+        gap: 10px;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        justify-items: center;
+        align-items: center;
+      }
+      a {
+        color: #809fff;
+      }
+      img {
+        max-width: 300px;
+        max-height: 300px;
       }
     </style>
   </head>

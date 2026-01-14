@@ -64,20 +64,40 @@ async function getResponse(
       .filter(x => !x.name.startsWith("."))
       .sort((a, b) => a.name.localeCompare(b.name));
 
-    let html = htmlTemplate.replace(
-      "{entries}",
-      [
-        // dirs
-        ...visibleEntires.filter(entry => !entry.isFile()),
-        // files
-        ...visibleEntires.filter(entry => entry.isFile()),
-      ]
-        .map(entry => {
-          const { name } = entry;
-          return `<a href="${pathname === "/" ? "" : pathname}/${encodeURIComponent(name)}">${name}${entry.isFile() ? "" : "/"}</a>`;
-        })
-        .join("<br>\n"),
-    );
+    const galleryView = url.searchParams.get("view") === "gallery";
+    const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp"];
+
+    const dirsHtml = visibleEntires
+      .filter(entry => !entry.isFile())
+      .map(entry => {
+        const { name } = entry;
+        const href = `${pathname === "/" ? "" : pathname}/${encodeURIComponent(name)}`;
+        return `<a href="${href}">${name}/</a>`;
+      });
+    const filesHtml = visibleEntires
+      .filter(
+        entry =>
+          entry.isFile()
+          && (!galleryView
+            || imageExtensions.some(ext => entry.name.endsWith(ext))),
+      )
+      .map(entry => {
+        const { name } = entry;
+        const href = `${pathname === "/" ? "" : pathname}/${encodeURIComponent(name)}`;
+        if (galleryView) {
+          return `<img src="${href}" loading="lazy">`;
+        }
+        return `<a href="${href}">${name}</a>`;
+      });
+
+    let listHtml: string;
+    if (galleryView) {
+      listHtml = `${dirsHtml.join("<br>\n")}
+<div class="grid">${filesHtml.join("")}</div>`;
+    } else {
+      listHtml = [...dirsHtml, ...filesHtml].join("<br>\n");
+    }
+    let html = htmlTemplate.replace("{entries}", listHtml);
 
     let breadcrumbsHtml: string;
     if (pathParts.length) {
@@ -95,6 +115,11 @@ async function getResponse(
       breadcrumbsHtml = "<span>/</span>";
     }
     breadcrumbsHtml += ` [entries: ${visibleEntires.length}]`;
+    if (galleryView) {
+      breadcrumbsHtml += ` <a href="${pathname}">List view</a>`;
+    } else {
+      breadcrumbsHtml += ` <a href="${pathname}/?view=gallery">Gallery view</a>`;
+    }
     html = html.replace("{breadcrumbs}", breadcrumbsHtml);
 
     return {
