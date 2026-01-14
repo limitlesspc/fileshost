@@ -3,6 +3,20 @@ import * as path from "node:path";
 import * as fs from "node:fs/promises";
 import htmlTemplate from "./dir.html" with { type: "text" };
 
+const lazyLoadScriptFile = Bun.file(
+  path.join(import.meta.dir, "./lazy-load.js"),
+);
+lazyLoadScriptFile.text();
+
+const digest = await crypto.subtle.digest(
+  "SHA-1",
+  await lazyLoadScriptFile.bytes(),
+);
+const hash = [...new Uint8Array(digest)]
+  .map(b => b.toString(16).padStart(2, "0"))
+  .join("")
+  .slice(0, 8);
+
 const domain = env.DOMAIN;
 const dir = env.DIR;
 if (!domain || !dir) {
@@ -95,7 +109,7 @@ async function getResponse(
         const lowerName = entry.name.toLowerCase();
         if (galleryView) {
           if (imageExtensions.some(ext => lowerName.endsWith(ext))) {
-            return `<img src="${href}" loading="lazy">`;
+            return `<img data-src="${href}" width="300" height="300">`;
           }
           return `<video width="300" height="300" autoplay muted loop playsinline>
   <source data-src="${href}" type="video/${lowerName.split(".").at(-1)}">
@@ -135,6 +149,10 @@ async function getResponse(
       breadcrumbsHtml += ` <a href="${pathname}/?view=gallery">Gallery view</a>`;
     }
     html = html.replace("{breadcrumbs}", breadcrumbsHtml);
+    html = html.replace(
+      '<script src="/lazy-load.js"></script>',
+      `<script src="/lazy-load.js?v=${hash}"></script>`,
+    );
 
     return {
       res: new Response(html, {
