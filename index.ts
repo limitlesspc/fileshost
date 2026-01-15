@@ -85,7 +85,7 @@ async function getResponse(
 
     const galleryView = url.searchParams.get("view") === "gallery";
     const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".heic"];
-    const videoExensions = [".mp4", ".mkv", ".mov"];
+    const videoExensions = [".mp4", ".mkv"];
 
     const dirsHtml = visibleEntires
       .filter(entry => !entry.isFile())
