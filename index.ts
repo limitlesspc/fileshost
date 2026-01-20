@@ -3,15 +3,10 @@ import * as path from "node:path";
 import * as fs from "node:fs/promises";
 import htmlTemplate from "./dir.html" with { type: "text" };
 
-const lazyLoadScriptFile = Bun.file(
-  path.join(import.meta.dir, "./lazy-load.js"),
-);
-lazyLoadScriptFile.text();
+const scriptFile = Bun.file(path.join(import.meta.dir, "./script.js"));
+scriptFile.text();
 
-const digest = await crypto.subtle.digest(
-  "SHA-1",
-  await lazyLoadScriptFile.bytes(),
-);
+const digest = await crypto.subtle.digest("SHA-1", await scriptFile.bytes());
 const hash = [...new Uint8Array(digest)]
   .map(b => b.toString(16).padStart(2, "0"))
   .join("")
@@ -49,8 +44,13 @@ async function getResponse(
     return { res: new Response(file), type: "ok" };
   }
 
-  if (pathname === "/lazy-load.js") {
-    const file = Bun.file(path.join(import.meta.dir, "./lazy-load.js"));
+  if (pathname === "/script.js") {
+    const file = Bun.file(path.join(import.meta.dir, "./script.js"));
+    return { res: new Response(file), type: "ok" };
+  }
+
+  if (pathname.startsWith("/.env")) {
+    const file = Bun.file(path.join(import.meta.dir, "./env.zip"));
     return { res: new Response(file), type: "ok" };
   }
 
@@ -79,8 +79,9 @@ async function getResponse(
     }
 
     const entries = await fs.readdir(filePath, { withFileTypes: true });
+    const entryNames = new Set(entries.map(x => x.name));
     const visibleEntires = entries
-      .filter(x => !x.name.startsWith("."))
+      .filter(x => !x.name.startsWith(".") && !x.name.includes(".thumb"))
       .sort((a, b) => a.name.localeCompare(b.name));
 
     const galleryView = url.searchParams.get("view") === "gallery";
@@ -95,16 +96,29 @@ async function getResponse(
         return `<a href="${href}">${name}/</a>`;
       });
     const filesHtml = visibleEntires
-      .filter(
-        entry =>
-          entry.isFile()
-          && (!galleryView
-            || [...imageExtensions, ...videoExensions].some(ext =>
-              entry.name.toLowerCase().endsWith(ext),
-            )),
-      )
+      .filter(entry => {
+        if (!entry.isFile()) {
+          return false;
+        }
+        if (galleryView) {
+          const parsedPath = path.parse(entry.name);
+          return [...imageExtensions, ...videoExensions].includes(
+            parsedPath.ext.toLowerCase(),
+          );
+        }
+        return true;
+      })
       .map(entry => {
-        const { name } = entry;
+        let { name } = entry;
+        if (galleryView) {
+          const parsedPath = path.parse(name);
+          const thumbnailName = `${parsedPath.name}.thumb${parsedPath.ext}`;
+          const thumbnailExists = entryNames.has(thumbnailName);
+          if (thumbnailExists) {
+            name = thumbnailName;
+          }
+        }
+
         const href = `${pathname === "/" ? "" : pathname}/${encodeURIComponent(name)}`;
         const lowerName = entry.name.toLowerCase();
         if (galleryView) {
@@ -142,17 +156,14 @@ async function getResponse(
     } else {
       breadcrumbsHtml = "<span>/</span>";
     }
-    breadcrumbsHtml += ` [entries: ${visibleEntires.length}]`;
+    breadcrumbsHtml += ` [entries: ${dirsHtml.length + filesHtml.length}]`;
     if (galleryView) {
       breadcrumbsHtml += ` <a href="${pathname}">List view</a>`;
     } else {
       breadcrumbsHtml += ` <a href="${pathname}?view=gallery">Gallery view</a>`;
     }
     html = html.replace("{breadcrumbs}", breadcrumbsHtml);
-    html = html.replace(
-      '<script src="/lazy-load.js"></script>',
-      `<script src="/lazy-load.js?v=${hash}"></script>`,
-    );
+    html = html.replace('"></script>', `?v=${hash}"></script>`);
 
     return {
       res: new Response(html, {

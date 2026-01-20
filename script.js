@@ -4,7 +4,12 @@ document.addEventListener("DOMContentLoaded", () => {
       for (const image of entries) {
         if (image.isIntersecting) {
           const { target } = image;
-          target.src = target.dataset.src;
+          const { src } = target.dataset;
+          target.src = src;
+          target.addEventListener("click", () =>
+            window.open(src.replace(".thumb", "")),
+          );
+
           delete target.dataset.src;
           target.removeAttribute("width");
           target.removeAttribute("height");
@@ -28,7 +33,11 @@ document.addEventListener("DOMContentLoaded", () => {
               typeof videoSource.tagName === "string"
               && videoSource.tagName === "SOURCE"
             ) {
-              videoSource.src = videoSource.dataset.src;
+              const { src } = videoSource.dataset;
+              videoSource.src = src;
+              target.addEventListener("click", () =>
+                window.open(src.replace(".thumb", "")),
+              );
               delete videoSource.dataset.src;
             }
           }
@@ -43,3 +52,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 });
+
+function openInNewTab(href) {
+  window.open(href, "_blank");
+}
