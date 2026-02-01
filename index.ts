@@ -89,7 +89,7 @@ async function getResponse(
     const videoExensions = [".mp4", ".mkv"];
 
     const dirsHtml = visibleEntires
-      .filter(entry => !entry.isFile())
+      .filter(entry => entry.isDirectory())
       .map(entry => {
         const { name } = entry;
         const href = `${pathname === "/" ? "" : pathname}/${encodeURIComponent(name)}`;
