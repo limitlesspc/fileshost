@@ -1,19 +1,27 @@
 import { env } from "bun";
 import * as path from "node:path";
 import * as fs from "node:fs/promises";
-import htmlTemplate from "./dir.html" with { type: "text" };
+import rawHtmlTemplate from "./dir.html" with { type: "text" };
 
 const scriptFile = Bun.file(path.join(import.meta.dir, "./script.js"));
-scriptFile.text();
 
-const digest = await crypto.subtle.digest("SHA-1", await scriptFile.bytes());
-const hash = [...new Uint8Array(digest)]
+const scriptDigest = await crypto.subtle.digest(
+  "SHA-1",
+  await scriptFile.bytes(),
+);
+const scriptHash = [...new Uint8Array(scriptDigest)]
   .map(b => b.toString(16).padStart(2, "0"))
   .join("")
   .slice(0, 8);
 
-const domain = env.DOMAIN;
-const dir = env.DIR;
+// Bun types are incorrect here
+const htmlTemplate = (rawHtmlTemplate as unknown as string).replace(
+  '"></script>',
+  `?v=${scriptHash}"></script>`,
+);
+
+const domain = env.DOMAIN || "";
+const dir = env.DIR || "";
 if (!domain || !dir) {
   throw new Error("The environment variables DOMAIN and DIR must be set");
 }
@@ -27,6 +35,10 @@ const server = Bun.serve({
   },
 });
 console.log(`Listening on http://localhost:${server.port}`);
+
+const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".heic"];
+const videoExtensions = [".mp4", ".mkv"];
+const mediaExtensions = [...imageExtensions, ...videoExtensions];
 
 type ResponseType = "ok" | "unauthorized" | "not_found";
 async function getResponse(
@@ -49,13 +61,8 @@ async function getResponse(
     return { res: new Response(file), type: "ok" };
   }
 
-  if (pathname.startsWith("/.env")) {
-    const file = Bun.file(path.join(import.meta.dir, "./env.zip"));
-    return { res: new Response(file), type: "ok" };
-  }
-
   const pathParts = pathname.split("/").filter(Boolean);
-  if (pathParts.some(name => name.startsWith("."))) {
+  if (pathname.includes("/.")) {
     return {
       res: new Response("Not Found", { status: 404 }),
       type: "unauthorized",
@@ -73,38 +80,33 @@ async function getResponse(
 
     const indexPath = path.join(filePath, "index.html");
     const indexFile = Bun.file(indexPath);
-    const hasIndexFile = await indexFile.exists();
-    if (hasIndexFile) {
+    if (await indexFile.exists()) {
       return { res: new Response(indexFile), type: "ok" };
     }
 
     const entries = await fs.readdir(filePath, { withFileTypes: true });
     const entryNames = new Set(entries.map(x => x.name));
-    const visibleEntires = entries
+    const visibleEntries = entries
       .filter(x => !x.name.startsWith(".") && !x.name.includes(".thumb"))
       .sort((a, b) => a.name.localeCompare(b.name));
 
     const galleryView = url.searchParams.get("view") === "gallery";
-    const imageExtensions = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".heic"];
-    const videoExensions = [".mp4", ".mkv"];
 
-    const dirsHtml = visibleEntires
+    const dirsHtml = visibleEntries
       .filter(entry => entry.isDirectory())
       .map(entry => {
         const { name } = entry;
         const href = `${pathname === "/" ? "" : pathname}/${encodeURIComponent(name)}`;
         return `<a href="${href}">${name}/</a>`;
       });
-    const filesHtml = visibleEntires
+    const filesHtml = visibleEntries
       .filter(entry => {
         if (!entry.isFile()) {
           return false;
         }
         if (galleryView) {
           const parsedPath = path.parse(entry.name);
-          return [...imageExtensions, ...videoExensions].includes(
-            parsedPath.ext.toLowerCase(),
-          );
+          return mediaExtensions.includes(parsedPath.ext.toLowerCase());
         }
         return true;
       })
@@ -139,7 +141,10 @@ async function getResponse(
     } else {
       listHtml = [...dirsHtml, ...filesHtml].join("<br>\n");
     }
-    let html = htmlTemplate.replace("{entries}", listHtml);
+    let html = (htmlTemplate as unknown as string).replace(
+      "{entries}",
+      listHtml,
+    );
 
     let breadcrumbsHtml: string;
     if (pathParts.length) {
@@ -163,7 +168,6 @@ async function getResponse(
       breadcrumbsHtml += ` <a href="${pathname}?view=gallery">Gallery view</a>`;
     }
     html = html.replace("{breadcrumbs}", breadcrumbsHtml);
-    html = html.replace('"></script>', `?v=${hash}"></script>`);
 
     return {
       res: new Response(html, {
