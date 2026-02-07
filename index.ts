@@ -91,6 +91,7 @@ async function getResponse(
       .sort((a, b) => a.name.localeCompare(b.name));
 
     const galleryView = url.searchParams.get("view") === "gallery";
+    const randomView = !!url.searchParams.has("random");
 
     const dirsHtml = visibleEntries
       .filter(entry => entry.isDirectory())
@@ -133,6 +134,14 @@ async function getResponse(
         }
         return `<a href="${href}">${name}</a>`;
       });
+    if (randomView) {
+      for (let i = filesHtml.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        const temp = filesHtml[i]!;
+        filesHtml[i] = filesHtml[j]!;
+        filesHtml[j] = temp;
+      }
+    }
 
     let listHtml: string;
     if (galleryView) {
@@ -164,8 +173,13 @@ async function getResponse(
     breadcrumbsHtml += ` [entries: ${dirsHtml.length + filesHtml.length}]`;
     if (galleryView) {
       breadcrumbsHtml += ` <a href="${pathname}">List view</a>`;
+      breadcrumbsHtml += ` <a href="${pathname}?view=gallery&random=1">Random gallery view</a>`;
+    } else if (randomView) {
+      breadcrumbsHtml += ` <a href="${pathname}">List view</a>`;
+      breadcrumbsHtml += ` <a href="${pathname}?view=gallery">Gallery view</a>`;
     } else {
       breadcrumbsHtml += ` <a href="${pathname}?view=gallery">Gallery view</a>`;
+      breadcrumbsHtml += ` <a href="${pathname}?view=gallery&random=1">Random gallery view</a>`;
     }
     html = html.replace("{breadcrumbs}", breadcrumbsHtml);
 
