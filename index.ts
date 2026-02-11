@@ -22,12 +22,15 @@ const htmlTemplate = (rawHtmlTemplate as unknown as string).replace(
 
 const domain = env.DOMAIN || "";
 const dir = env.DIR || "";
-if (!domain || !dir) {
-  throw new Error("The environment variables DOMAIN and DIR must be set");
+const port = env.PORT || "";
+if (!domain || !dir || !port) {
+  throw new Error(
+    "The environment variables DOMAIN, DIR, and PORT must be set",
+  );
 }
 
 const server = Bun.serve({
-  port: env.PORT,
+  port,
   async fetch(req) {
     const { res, type } = await getResponse(req);
     console.log(`[${new Date().toISOString()}] ${type} ${req.url}`);
