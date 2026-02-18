@@ -118,12 +118,32 @@ func main() {
 				visibleEntries = append(visibleEntries, entry)
 			}
 		}
-		slices.SortFunc(visibleEntries, func(a, b os.DirEntry) int {
-			return cmp.Compare(a.Name(), b.Name())
-		})
 
-		galleryView := URL.Query().Get("view") == "gallery"
-		randomView := URL.Query().Get("random") == "1"
+		query := URL.Query()
+		galleryView := query.Get("view") == "gallery"
+		sortParam := query.Get("sort")
+
+		if sortParam == "dmodified" {
+			slices.SortFunc(visibleEntries, func(a, b os.DirEntry) int {
+				aInfo, err := a.Info()
+				if err != nil {
+					return 0
+				}
+				bInfo, err := b.Info()
+				if err != nil {
+					return 0
+				}
+				return bInfo.ModTime().Compare(aInfo.ModTime())
+			})
+		} else if sortParam == "random" {
+			rand.Shuffle(len(visibleEntries), func(i, j int) {
+				visibleEntries[i], visibleEntries[j] = visibleEntries[j], visibleEntries[i]
+			})
+		} else {
+			slices.SortFunc(visibleEntries, func(a, b os.DirEntry) int {
+				return cmp.Compare(a.Name(), b.Name())
+			})
+		}
 
 		dirsHtml := []string{}
 		for _, entry := range visibleEntries {
@@ -188,11 +208,6 @@ func main() {
 			}
 			filesHtml = append(filesHtml, html)
 		}
-		if randomView {
-			rand.Shuffle(len(filesHtml), func(i, j int) {
-				filesHtml[i], filesHtml[j] = filesHtml[j], filesHtml[i]
-			})
-		}
 
 		var listHtml string
 		if galleryView {
@@ -226,21 +241,23 @@ func main() {
 			breadcrumbsHtml = "<span>/</span>"
 		}
 		breadcrumbsHtml += fmt.Sprintf(" [entries: %d]", len(dirsHtml)+len(filesHtml))
+
 		if galleryView {
-			breadcrumbsHtml += fmt.Sprintf(` <a href="%s">List view</a>`, pathname)
-			if randomView {
-				breadcrumbsHtml += fmt.Sprintf(` <a href="%s?view=gallery">Gallery view</a>`, pathname)
+			breadcrumbsHtml += fmt.Sprintf(` <a href="%s">List</a>`, pathname)
+			if sortParam == "dmodified" {
+				breadcrumbsHtml += fmt.Sprintf(` <a href="%s?view=gallery">Gallery</a>`, pathname)
+				breadcrumbsHtml += fmt.Sprintf(` <a href="%s?view=gallery&sort=random">Random gallery</a>`, pathname)
+			} else if sortParam == "random" {
+				breadcrumbsHtml += fmt.Sprintf(` <a href="%s?view=gallery">Gallery</a>`, pathname)
+				breadcrumbsHtml += fmt.Sprintf(` <a href="%s?view=gallery&sort=dmodified">Newest gallery</a>`, pathname)
 			} else {
-				breadcrumbsHtml += fmt.Sprintf(` <a href="%s?view=gallery&random=1">Random gallery view</a>`, pathname)
-
+				breadcrumbsHtml += fmt.Sprintf(` <a href="%s?view=gallery&sort=random">Random gallery</a>`, pathname)
+				breadcrumbsHtml += fmt.Sprintf(` <a href="%s?view=gallery&sort=dmodified">Newest gallery</a>`, pathname)
 			}
-		} else if randomView {
-			breadcrumbsHtml += fmt.Sprintf(` <a href="%s">List view</a>`, pathname)
-			breadcrumbsHtml += fmt.Sprintf(` <a href="%s?view=gallery">Gallery view</a>`, pathname)
-
 		} else {
-			breadcrumbsHtml += fmt.Sprintf(` <a href="%s?view=gallery">Gallery view</a>`, pathname)
-			breadcrumbsHtml += fmt.Sprintf(` <a href="%s?view=gallery&random=1">Random gallery view</a>`, pathname)
+			breadcrumbsHtml += fmt.Sprintf(` <a href="%s?view=gallery">Gallery</a>`, pathname)
+			breadcrumbsHtml += fmt.Sprintf(` <a href="%s?view=gallery&sort=random">Random gallery</a>`, pathname)
+			breadcrumbsHtml += fmt.Sprintf(` <a href="%s?view=gallery&sort=dmodified">Newest gallery</a>`, pathname)
 		}
 		html = strings.Replace(html, "{breadcrumbs}", breadcrumbsHtml, 1)
 
