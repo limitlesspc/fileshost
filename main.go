@@ -214,7 +214,11 @@ func main() {
 			listHtml = fmt.Sprintf(`%s
 			<div class="grid">%s</div>`, strings.Join(dirsHtml, "<br>\n"), strings.Join(filesHtml, ""))
 		} else {
-			listHtml = strings.Join(dirsHtml, "<br>\n") + "<br>\n" + strings.Join(filesHtml, "<br>\n")
+			listHtml = ""
+			for _, dirHtml := range dirsHtml {
+				listHtml += dirHtml + "<br>\n"
+			}
+			listHtml += strings.Join(filesHtml, "<br>\n")
 		}
 		html := strings.Replace(htmlTemplate, "{entries}", listHtml, 1)
 
