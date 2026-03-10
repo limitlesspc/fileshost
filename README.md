@@ -2,8 +2,6 @@
 
 A simple HTTP server that serves static files
 
-Supports multiple sub-domains
-
 ## Running
 
 First make a `.env` file like this:
