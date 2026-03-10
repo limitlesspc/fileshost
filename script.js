@@ -52,7 +52,3 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 });
-
-function openInNewTab(href) {
-  window.open(href, "_blank");
-}
